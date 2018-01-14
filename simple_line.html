@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Learning D3</title>
+	<link rel="stylesheet" href="main.css">
+	<script  type="text/javascript" src="d3.min.js"></script>
+</head>
+<body>
+<!--Place all DOM elements here -->
+<script>
+var data = [
+	{key: "Jelly", value: 60, date: "2014/01/01" },
+	{key: "Jelly", value: 58, date: "2014/01/02" },
+	{key: "Jelly", value: 59, date: "2014/01/03" },
+	{key: "Jelly", value: 56, date: "2014/01/04" },
+	{key: "Jelly", value: 57, date: "2014/01/05" },
+	{key: "Jelly", value: 55, date: "2014/01/06" },
+	{key: "Jelly", value: 56, date: "2014/01/07" },
+	{key: "Jelly", value: 52, date: "2014/01/08" },
+	{key: "Jelly", value: 54, date: "2014/01/09" },
+	{key: "Jelly", value: 57, date: "2014/01/10" },
+	{key: "Jelly", value: 56, date: "2014/01/11" },
+	{key: "Jelly", value: 59, date: "2014/01/12" },
+	{key: "Jelly", value: 56, date: "2014/01/13" },
+	{key: "Jelly", value: 52, date: "2014/01/14" },
+	{key: "Jelly", value: 48, date: "2014/01/15" },
+	{key: "Jelly", value: 47, date: "2014/01/16" },
+	{key: "Jelly", value: 48, date: "2014/01/17" },
+	{key: "Jelly", value: 45, date: "2014/01/18" },
+	{key: "Jelly", value: 43, date: "2014/01/19" },
+	{key: "Jelly", value: 41, date: "2014/01/20" },
+	{key: "Jelly", value: 37, date: "2014/01/21" },
+	{key: "Jelly", value: 36, date: "2014/01/22" },
+	{key: "Jelly", value: 39, date: "2014/01/23" },
+	{key: "Jelly", value: 41, date: "2014/01/24" },
+	{key: "Jelly", value: 42, date: "2014/01/25" },
+	{key: "Jelly", value: 40, date: "2014/01/26" },
+	{key: "Jelly", value: 43, date: "2014/01/27" },
+	{key: "Jelly", value: 41, date: "2014/01/28" },
+	{key: "Jelly", value: 39, date: "2014/01/29" },
+	{key: "Jelly", value: 40, date: "2014/01/30" },
+	{key: "Jelly", value: 39, date: "2014/01/31" }
+];
+var w = 800;
+var h = 450;
+var margin = {
+	top: 58,
+	bottom: 100,
+	left: 80,
+	right: 40
+};
+var width = w - margin.left - margin.right;
+var height = h - margin.top - margin.bottom;
+
+//SVG-Element und Group in dieswem SVG-Element
+var svg = d3.select("body").append("svg")
+			.attr("id", "chart")
+			.attr("width", w)
+			.attr("height", h);
+var chart = svg.append("g")
+			.classed("display", true)
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Zunächs verwandeln wir Die Datumsstring-Formate in richtige Date-Objekte.
+// Unter D3 gibt es dafür die Funktion date()
+// Wir benötigen zudem die Format-Kürzel. Wir sagen also D3, was es da für ein Datum liest
+var dateParser = d3.time.format("%Y/%m/%d").parse;
+console.log("2014/01/31");
+console.log(dateParser("2014/01/31"));
+
+// Jetzt legen wir die Achsen fest.
+// Zunächst die X-Achse. Hier nutzen wir die Time-Methode von D3. Wie immer bei der Achse legen wir die Domanin und die Range fest.
+// Die Domain geht von links, frühestes Datum, nach rechts, spätestes Datum.
+// Bedeutet: Wir brauchen den höchsten und niedrigsten Wert, also extent-Function
+// ins return müssen wir die Parser-Function schreiben
+var x = d3.time.scale()
+	.domain(d3.extent(data, function(d){
+		var date = dateParser(d.date);
+		return date;
+	}))
+	.range([0, width]);
+
+// Jetz noch die Y-Achse
+var y = d3.scale.linear()
+	.domain([0, d3.max(data, function(d){
+		return d.value;
+	})])
+	.range([height,0]);
+
+// Beschriften der Achsen
+// Wir rufen die beiden Axis nachher nicht i nder Plotfunction auf, sondern packen sie zunächst beim Aufruf plot.call in die Attribute der Function, also in die params.
+// Erst danach holen wir sie uns in der plot-Function. Der Vorteil: Die Plot-Function funktioniert auch mit anderen Daten.
+var xAxis = d3.svg.axis()
+	.scale(x)
+	.orient("bottom")
+	//jetzt formatieren wir die X-Achse
+	// dafür nutzen wir die ticks-Function von d3
+	// ticks lässt mich die Abstände auf der X-Achse formatieren
+	// .Time ist dabei ein spezieller D3-Befehl, wir wollen also Tage anzeigen
+	// Die 7 zeigt den Abstand zwischen den einzelnen Werten. Heißt: Der Erste Tag wird gezeigt, dann lässt D3 sechs Tage aus und zeigt den 7. Wieder auf der X-Achse an.
+	// Die X-Achse zeigt also nicht mehr für jeden Wert einen Eintrag, sondern nur für jeden 7. In unserem Fall also immer den Beginn der Woche.
+	.ticks(d3.time.days, 7)
+	//mit Tick-Format legen wir jetzt fest, mit welchen Begriffen die X-Achse gelabelt wird.
+	.tickFormat(d3.time.format("%m/%d"));
+
+var yAxis = d3.svg.axis()
+	.scale(y)
+	.orient("left")
+	//Jetzt formatieren wir die Y-Achse. Erstmal legen wir die ticks fest, damit die Y-Achse nicht so überladen aussieht.
+	// Mit ticks lassen wir uns nur jeden ticks(x)-ten Wert anzeigen.
+	// In unserem Fall werden aus 5er 10er Schritte???
+	.ticks(5);
+
+
+// CREATING A LINE
+// Dafür nutzen wir den D3-Path-Generator
+// Danach müssen wir diese Funktion aber auch aufrufen, das machen wir in der Plot-Function.
+var line = d3.svg.line()
+			.x(function(d){
+				var date = dateParser(d.date);
+				return x(date);
+			})
+			.y(function(d){
+				return y(d.value);
+			});
+
+
+
+
+
+
+// In der Plot-Function ist das Zeichnen des Charts abgelegt
+// In der plot-Function benötigen wir wieder die enter-, update- und exit-Phase
+function plot(params){
+	// hier holen wir die gezeichneten Achsen in die Plotfunktion
+	this.append("g") // fügen eine neue Group für x-Achse an
+		.classed("x axis", true)
+		.attr("transform", "translate(0," + height + ")")
+		.call(params.axis.x);
+	this.append("g") // fügen eine neue Group füy die Y-Achse an
+		.classed("y axis", true)
+		.attr("transform", "translate(0,0)")
+		.call(params.axis.y);
+
+	//enter() - binding data to chart
+	//Hier zeichnen wir die LINIE. Wir wollen sie unter die Points legen, daher wird sie vor den Punkten gezeichnet.
+	this.selectAll(".trendline")
+		.data([params.data]) // wichtig: bei Linien datasource in Array setzen
+		.enter()
+			.append("path")
+			.classed("trendline", true)
+
+
+
+	this.selectAll(".point")
+		.data(params.data)
+		.enter()
+			.append("circle")
+			.classed("point", true) // WICHTIG - true nicht vergessen
+			.attr("r", 2); // setzt den Radius auf 2, unsere "Punkte" = Durchmesser 4
+	//upadte()
+	//hier updaten wir die Linie, die wir in der Enter-Phase gezeichnet haben
+	this.selectAll(".trendline")
+		.attr("d", function(d){
+			return line(d);
+		});
+
+
+
+	this.selectAll(".point")
+		.attr("cx", function(d){
+			var date = dateParser(d.date); // nutzen wieder Parser-Function
+			return x(date);
+		})
+		.attr("cy", function(d){
+			return y(d.value);
+		});
+
+
+	//exit()
+	//hier machen wir den exit für unsere Linie
+	this.selectAll(".trendline")
+		.data([params.data]) // bei Linien Datenquelle immer in Array setzen
+		.exit()
+		.remove();
+	this.selectAll(".point")
+		.data(params.data)
+		.exit()
+		.remove(); // hier beseitigen wir alle ungebundenen Daten
+}
+
+
+// calling the plot-Function mit call. Erstes Argument zeigt das Objekt, auf das sich das this in der aufgerufenen Funktion bezieht. In unserem Fall die Gruppe in unserem SVG.
+plot.call(chart, {
+	data: data,
+	// hier fügen wir jetzt die xAxis und yAxis ein
+	axis: {
+		x: xAxis,
+		y: yAxis
+	}
+});
+</script>
+</body>
+</html>
